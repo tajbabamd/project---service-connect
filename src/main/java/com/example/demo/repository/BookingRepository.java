@@ -1,0 +1,39 @@
+package com.example.demo.repository;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.example.demo.entity.Booking;
+import com.example.demo.entity.BookingStatus;
+
+public interface BookingRepository
+        extends JpaRepository<Booking, Long> {
+
+    // Find all bookings belonging to a customer
+    List<Booking> findByCustomer_CustomerId(Long customerId);
+
+    // Find all bookings assigned to a worker
+    List<Booking> findByWorker_WorkerId(Long workerId);
+
+    // Find bookings with a particular status
+    List<Booking> findByBookingStatus(
+            BookingStatus bookingStatus);
+
+    // Find a specific booking belonging to a customer
+    Optional<Booking> findByBookingIdAndCustomer_CustomerId(
+            Long bookingId,
+            Long customerId);
+
+    // Check whether a worker has a conflicting booking
+    boolean existsByWorker_WorkerIdAndBookingDateAndBookingStatusInAndStartTimeLessThanAndEndTimeGreaterThan(
+            Long workerId,
+            LocalDate bookingDate,
+            List<BookingStatus> statuses,
+            LocalTime requestedEnd,
+            LocalTime requestedStart
+    );
+}
