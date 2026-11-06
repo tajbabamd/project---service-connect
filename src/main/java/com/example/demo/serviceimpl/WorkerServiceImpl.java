@@ -1,6 +1,10 @@
 package com.example.demo.serviceimpl;
 
+import java.util.NoSuchElementException;
+
+
 import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -93,5 +97,51 @@ public class WorkerServiceImpl implements WorkerService {
         workerRepository.save(worker);
 
         return "Worker registered successfully. Awaiting admin verification.";
+    }
+
+    @Override
+    @Transactional
+    public String updateAvailabilityStatus(
+            Long userId,
+            AvailabilityStatus status) {
+
+        // Step 1: Validate requested status
+        if (status == null) {
+            throw new IllegalArgumentException(
+                    "Availability status is required");
+        }
+
+        // Step 2: Find the worker using authenticated user ID
+        Worker worker = workerRepository
+                .findByUser_UserId(userId)
+                .orElseThrow(() ->
+                        new NoSuchElementException(
+                                "Worker profile not found"));
+        
+     // STEP 3: Lock this worker's database row.
+        // This coordinates with automatic booking assignment.
+        //newly updatednin p3 s8.3
+        worker = workerRepository
+                .findByIdForUpdate(worker.getWorkerId())
+                .orElseThrow(() ->
+                        new NoSuchElementException(
+                                "Worker profile not found"));
+
+        // Step 4: Require admin approval to become AVAILABLE
+        if (status == AvailabilityStatus.AVAILABLE
+                && worker.getVerificationStatus()
+                        != VerificationStatus.APPROVED) {
+
+            throw new IllegalStateException(
+                    "Worker must be approved before becoming available");
+        }
+
+        // Step 5: Update availability status
+        worker.setAvailabilityStatus(status);
+
+        // Step 6: Save to MySQL
+        workerRepository.save(worker);
+
+        return "Worker availability updated to " + status.name();
     }
 }
